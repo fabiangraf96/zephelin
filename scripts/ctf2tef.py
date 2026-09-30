@@ -27,6 +27,15 @@ from typing import Any, Callable, NamedTuple
 
 import bt2  # From the babeltrace2 package.
 
+# Synthetic duration (in microseconds) given to instant, zero-duration markers
+# such as sys_trace_named_event() so they render as a visible Begin/End bar
+# instead of a zero-width one. The viewer's true INSTANT phase ("i") is not
+# rendered by Speedscope-based flamegraphs, so instant events must be encoded
+# as a B/E pair -- see the "named_event" handling in ctf_to_tef(). The value
+# is chosen well below the smallest real inter-event gap observed on real
+# traces (~8 us) so it can never overlap with the next genuine event.
+NAMED_EVENT_SYNTHETIC_DURATION_US = 1.0
+
 
 class EventPhase(Enum):
     """
@@ -312,6 +321,28 @@ def ctf_to_tef(
         thread_id = int(
             fields.get("thread_id", current_thread[msg.event.payload_field.get("cpu_id", -1)])
         )
+        # Process user-defined named events (sys_trace_named_event). These carry
+        # no *_enter/*_exit suffix and aren't registered in custom_metadata, so
+        # without this branch they would silently fall through and be dropped.
+        # Emitted as a Begin/End pair with a small synthetic duration (see
+        # NAMED_EVENT_SYNTHETIC_DURATION_US) since Speedscope (and this
+        # viewer) only render B/E phases in the flamegraph, not true INSTANT,
+        # and a genuinely zero-width bar is nearly invisible/unclickable.
+        if msg.event.name == "named_event":
+            converted.append(
+                emit_event(msg, "named_event", thread_id, EventPhase.BEGIN, skip_args=skip_args)
+            )
+            converted.append(
+                emit_event(
+                    msg,
+                    "named_event",
+                    thread_id,
+                    EventPhase.END,
+                    shift=NAMED_EVENT_SYNTHETIC_DURATION_US,
+                    skip_args=skip_args,
+                )
+            )
+            continue
         # Process custom metadata
         if msg.event.name in custom_metadata:
             m = custom_metadata[msg.event.name]
