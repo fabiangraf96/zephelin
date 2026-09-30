@@ -10,6 +10,7 @@ Provides a handler for trace collection related tasks.
 import asyncio
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Literal, Optional, Union
 
@@ -32,7 +33,11 @@ from socketio import AsyncServer
 from state_manager import global_state
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-PARSE_THRESHOLD_BYTES = 8192
+PARSE_THRESHOLD_BYTES = 16384
+# Upper bound on how long buffered data may wait before it is parsed and pushed
+# to the viewer. Without this, a slow event rate would keep the timeline frozen
+# until PARSE_THRESHOLD_BYTES is reached.
+PARSE_MAX_INTERVAL_S = 1.0
 
 logger = logging.getLogger("TraceHandler")
 
@@ -96,6 +101,17 @@ class TraceHandler(BaseHandler):
 
         self.continuous_streaming = False
 
+        # Accumulated TEF events across capture reconnects.
+        # Each reconnect produces a fresh CTF file that is parsed independently.
+        # The resulting TEF events are appended here so the timeline grows
+        # continuously (board timestamps are monotonic across buffer resets).
+        self._accumulated_tef_events: list = []
+        # Track how many events from the *current* CTF file have already
+        # been folded into _accumulated_tef_events to avoid duplicates.
+        self._current_ctf_event_count: int = 0
+        # Timestamp of the last parse, used for the time based flush below.
+        self._last_parse_time: float = 0.0
+
     @endpoints.register_method("trace.connnect")
     async def connect(self) -> dict[Literal["status", "message"], str]:
         """
@@ -114,6 +130,13 @@ class TraceHandler(BaseHandler):
         logger.info("Connection initializing")
         if global_state.trace_active or self.trace_socket:
             raise Exception("Already listening for traces.")
+
+        # Full reset on new session (user clicked Stop then Start)
+        self.events_sent_count = 0
+        self.trace_threads.clear()
+        self.unprocessed_bytes = 0
+        self._accumulated_tef_events.clear()
+        self._current_ctf_event_count = 0
 
         self.trace_socket = await asyncio.start_server(
             self._handle_client, self.tcp_host, self.tcp_port
@@ -342,12 +365,25 @@ class TraceHandler(BaseHandler):
 
         self.active_writer = writer
 
+        # Wait for any in-progress bt2 parse to finish before overwriting the
+        # CTF file — otherwise the new (empty) file races with the old parse.
+        waited = 0
+        while self._is_parsing and waited < 30:
+            await asyncio.sleep(0.1)
+            waited += 1
+
         self.raw_ctf_path.parent.mkdir(exist_ok=True)
+        # Each reconnect gets a fresh CTF file — binary CTF cannot be
+        # concatenated (bt2 loses event alignment at the seam).
+        # Parsed TEF events are accumulated in _accumulated_tef_events instead.
         self.file_handle = open(self.raw_ctf_path, "wb")
-        self.events_sent_count = 0
+        self._current_ctf_event_count = 0
+        self.unprocessed_bytes = 0
+        self._last_parse_time = time.monotonic()
+        # Keep events_sent_count and trace_threads across reconnects
+        # so the viewer timeline extends instead of restarting.
         self.is_synced = False
         self.sync_buffer.clear()
-        self.trace_threads.clear()
 
         global_state.read_task = asyncio.current_task()
 
@@ -415,9 +451,22 @@ class TraceHandler(BaseHandler):
             # must parse data from byte 0 each time. This lock prevents multiple
             # threads reading the same file. Also prevents race conditions from
             # corrupting 'events_sent_count'.
-            if self.unprocessed_bytes >= PARSE_THRESHOLD_BYTES and not self._is_parsing:
+            # Parse when enough data piled up, or when the data simply trickles
+            # in slowly. A purely size based trigger makes a low event rate look
+            # like a frozen viewer: at ~2.7 KB/s a 16 KB threshold only emits
+            # every ~6 s, so the timeline advances in visible jumps. The time
+            # based flush bounds that latency without increasing the parse rate
+            # when the buffer fills quickly.
+            now = time.monotonic()
+            due_by_size = self.unprocessed_bytes >= PARSE_THRESHOLD_BYTES
+            due_by_time = (
+                self.unprocessed_bytes > 0
+                and (now - self._last_parse_time) >= PARSE_MAX_INTERVAL_S
+            )
+            if (due_by_size or due_by_time) and not self._is_parsing:
                 self._is_parsing = True
                 self.unprocessed_bytes = 0
+                self._last_parse_time = now
                 asyncio.create_task(self._safe_parse_and_emmit())
         else:
             # Keep enough bytes in memory to not miss the start tag
@@ -459,9 +508,7 @@ class TraceHandler(BaseHandler):
             return [], 0, self.events_sent_count
 
         slice_start = max(0, self.events_sent_count - window_size)
-
         overlap_count = min(self.events_sent_count, window_size)
-
         windowed_events = trace_events[slice_start:]
 
         return windowed_events, overlap_count, total_events
@@ -515,8 +562,17 @@ class TraceHandler(BaseHandler):
         loop = asyncio.get_event_loop()
         trace_events, thread_names = await loop.run_in_executor(None, run_sync_parse)
 
+        # Accumulate new TEF events from the current CTF file into the
+        # cross-reconnect pool.  Only append events we haven't seen yet
+        # from this CTF parse (bt2 re-parses from byte 0 every time).
+        current_total = len(trace_events)
+        if current_total > self._current_ctf_event_count:
+            new_events = trace_events[self._current_ctf_event_count:]
+            self._accumulated_tef_events.extend(new_events)
+            self._current_ctf_event_count = current_total
+
         windowed_events, overlap_count, new_total_count = self._get_sliding_window(
-            trace_events, window_size=150
+            self._accumulated_tef_events, window_size=150
         )
 
         payload_events = []
@@ -537,9 +593,16 @@ class TraceHandler(BaseHandler):
                     })
                     self.trace_threads[tid] = t_name
 
-            payload_events = new_metadata + windowed_events
+            # windowed_events includes `overlap_count` already-sent events at
+            # the front (a safety margin for bt2 packets that get reordered
+            # into the recent past). The frontend does not re-deduplicate
+            # using overlap_count, so we drop that prefix here ourselves
+            # before emitting — otherwise every poll cycle re-sends up to
+            # 150 already-seen events, inflating both the live view and any
+            # exported trace with duplicates.
+            payload_events = new_metadata + windowed_events[overlap_count:]
 
-        return payload_events, overlap_count, new_total_count
+        return payload_events, 0, new_total_count
 
     async def _parse_and_emit_diff(self):
         """
@@ -548,13 +611,17 @@ class TraceHandler(BaseHandler):
         """
         try:
             previous_count = self.events_sent_count
+            logger.debug(f"Starting parse (previous_count={previous_count}, streaming={self.continuous_streaming})")
 
             payload_events, overlap_count, new_total_count = await self._extract_trace_increment(
                 update_state=self.continuous_streaming
             )
 
+            logger.debug(f"Parse result: new_total={new_total_count}, payload_events={len(payload_events)}, overlap={overlap_count}")
+
             if new_total_count > previous_count:
                 if self.continuous_streaming:
+                    logger.info(f"Emitting {len(payload_events)} events to viewer (total={self.events_sent_count})")
                     await self.sio.emit(
                         "rpc_notification",
                         {
@@ -568,6 +635,7 @@ class TraceHandler(BaseHandler):
                         },
                     )
                 else:
+                    logger.info(f"Emitting status: total_count={new_total_count}")
                     await self.sio.emit(
                         "rpc_notification",
                         {
@@ -578,7 +646,11 @@ class TraceHandler(BaseHandler):
                             },
                         },
                     )
+            else:
+                logger.debug(f"No new events (total={new_total_count} <= prev={previous_count})")
         except Exception as e:
             # It is expected that some parsed events will be incomplete
             if "LTTNG_CTF_LTTNG_INDEX" not in str(e):
                 logger.error(f"Incremental parse error: {e}")
+                import traceback
+                logger.error(traceback.format_exc())

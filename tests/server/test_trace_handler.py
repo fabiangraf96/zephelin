@@ -7,6 +7,7 @@
 
 import asyncio
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -15,6 +16,7 @@ import pytest
 sys.path.append(str(Path.cwd() / "server"))
 sys.path.append(str(Path.cwd() / "scripts"))
 from config import TraceConfig
+from ctf2tef import CTFConversionResult
 from handlers.trace_handler import PARSE_THRESHOLD_BYTES, TraceHandler
 
 
@@ -83,3 +85,68 @@ async def test_trace_ingestion_and_emit(mock_extract, trace_config, tmp_path):
             writer.close()
             await writer.wait_closed()
         await handler.disconnect()
+
+
+@pytest.mark.asyncio
+@patch("handlers.trace_handler.ctf_to_tef")
+@patch("handlers.trace_handler.prepare_dir")
+async def test_extract_trace_increment_no_duplicates_across_polls(
+    mock_prepare_dir, mock_ctf_to_tef, trace_config, tmp_path
+):
+    """
+    Regression test for the sliding-window overlap bug: each poll cycle re-parses
+    the CTF file from scratch (growing on disk) and _get_sliding_window() re-includes
+    up to 150 already-sent events as a safety margin for late-arriving bt2 packets.
+
+    The frontend does not deduplicate using `overlap_count`, so `_extract_trace_increment`
+    must itself strip that overlap before returning `payload_events` -- otherwise the
+    same events get emitted (and exported) multiple times.
+
+    Simulates three growing "reparses" that straddle the window_size=150 boundary and
+    asserts every emitted event across all polls is unique and none are missing.
+    """
+
+    @contextmanager
+    def fake_prepare_dir(*_args, **_kwargs):
+        yield tmp_path
+
+    mock_prepare_dir.side_effect = fake_prepare_dir
+
+    def make_events(n):
+        return [{"name": f"evt{i}", "ph": "B", "ts": i, "tid": 1} for i in range(n)]
+
+    # Cycle sizes chosen to straddle the window_size=150 boundary used internally by
+    # _extract_trace_increment, which is exactly the regime that triggered the bug.
+    cycle_totals = [100, 200, 260]
+    mock_ctf_to_tef.side_effect = [
+        CTFConversionResult(tef=make_events(total), thread_names={"main": 1})
+        for total in cycle_totals
+    ]
+
+    mock_sio = AsyncMock()
+    handler = TraceHandler(sio=mock_sio, traceConfig=trace_config)
+    handler.continuous_streaming = True
+    handler.raw_ctf_path = tmp_path / "live_capture.ctf"
+
+    all_emitted_keys = []
+    all_emitted_events = []
+
+    for _ in cycle_totals:
+        payload_events, overlap_count, new_total_count = await handler._extract_trace_increment(
+            update_state=True
+        )
+        # The bug this test guards against: emitting already-sent events again.
+        assert overlap_count == 0, "overlap must be fully consumed before returning to callers"
+
+        for event in payload_events:
+            if event.get("name") == "thread_name":
+                continue
+            all_emitted_events.append(event)
+            all_emitted_keys.append((event["name"], event["ph"], event["ts"]))
+
+    assert len(all_emitted_keys) == len(set(all_emitted_keys)), (
+        "duplicate events were emitted across poll cycles"
+    )
+    assert handler.events_sent_count == cycle_totals[-1]
+    assert len(all_emitted_events) == cycle_totals[-1]
+    assert all_emitted_events == make_events(cycle_totals[-1])
