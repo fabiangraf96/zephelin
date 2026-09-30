@@ -20,11 +20,16 @@
 
 _CYCLE_GET uint64_t soft_cycle_get_64(void)
 {
-	static timing_t bigbang;
-	timing_t now;
+	static uint32_t overflows;
+	static uint32_t prev_clk;
 
-	now = timing_counter_get();
-	return timing_cycles_get(&bigbang, &now);
+	uint32_t clk = k_cycle_get_32();
+
+	if (clk < prev_clk) {
+		overflows++;
+	}
+	prev_clk = clk;
+	return ((uint64_t)overflows << 32) | clk;
 }
 
 #undef _CYCLE_GET
