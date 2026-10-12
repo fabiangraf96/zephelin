@@ -1,0 +1,1102 @@
+From caaff80e095a27470ba9e61af145cf7adaa58d86 Mon Sep 17 00:00:00 2001
+From: Fabian Graf <noreply@siemens.com>
+Date: Mon, 12 Oct 2026 14:27:25 +0200
+Subject: [PATCH] subsys: tracing: ctf: complete stream_id coverage for all
+ events
+
+Patch 0012 adds a packet.header carrying stream_id, which makes an
+explicit stream_id mandatory on every event declaration as soon as a
+second CTF stream exists. Zephelin defines its own stream 1 for memory
+profiling events (see zpl/metadata), so that condition is always met
+here.
+
+0012 was written against an older Zephyr baseline and only annotates
+the 238 event declarations that existed at the time. Zephyr has since
+grown to 372, leaving 134 events (timer_*, queue_*, sys_init_*, and
+others) without a stream_id. babeltrace2 then fails to demultiplex the
+trace and run_backend.py cannot parse it.
+
+Annotate the remaining 134 event declarations with stream_id = 0 so the
+kernel stream is fully and consistently declared.
+
+Signed-off-by: Fabian Graf <noreply@siemens.com>
+---
+ subsys/tracing/ctf/tsdl/metadata | 134 +++++++++++++++++++++++++++++++
+ 1 file changed, 134 insertions(+)
+
+diff --git a/subsys/tracing/ctf/tsdl/metadata b/subsys/tracing/ctf/tsdl/metadata
+index 4cacfa0fdec..59103ced95c 100644
+--- a/subsys/tracing/ctf/tsdl/metadata
++++ b/subsys/tracing/ctf/tsdl/metadata
+@@ -2444,6 +2444,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = timer_expiry_enter;
+ 	id = 0x100;
+ 	fields := struct {
+@@ -2452,6 +2453,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = timer_expiry_exit;
+ 	id = 0x101;
+ 	fields := struct {
+@@ -2460,6 +2462,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = timer_stop_fn_expiry_enter;
+ 	id = 0x102;
+ 	fields := struct {
+@@ -2468,6 +2471,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = timer_stop_fn_expiry_exit;
+ 	id = 0x103;
+ 	fields := struct {
+@@ -2476,6 +2480,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = sys_init_enter;
+ 	id = 0x104;
+ 	fields := struct {
+@@ -2486,6 +2491,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = sys_init_exit;
+ 	id = 0x105;
+ 	fields := struct {
+@@ -2497,6 +2503,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_init;
+ 	id = 0x106;
+ 	fields := struct {
+@@ -2505,6 +2512,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_cancel_wait;
+ 	id = 0x107;
+ 	fields := struct {
+@@ -2513,6 +2521,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_queue_insert_enter;
+ 	id = 0x108;
+ 	fields := struct {
+@@ -2522,6 +2531,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_queue_insert_blocking;
+ 	id = 0x109;
+ 	fields := struct {
+@@ -2532,6 +2542,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_queue_insert_exit;
+ 	id = 0x10A;
+ 	fields := struct {
+@@ -2542,6 +2553,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_append_enter;
+ 	id = 0x10B;
+ 	fields := struct {
+@@ -2550,6 +2562,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_append_exit;
+ 	id = 0x10C;
+ 	fields := struct {
+@@ -2558,6 +2571,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_alloc_append_enter;
+ 	id = 0x10D;
+ 	fields := struct {
+@@ -2566,6 +2580,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_alloc_append_exit;
+ 	id = 0x10E;
+ 	fields := struct {
+@@ -2575,6 +2590,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_prepend_enter;
+ 	id = 0x10F;
+ 	fields := struct {
+@@ -2583,6 +2599,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_prepend_exit;
+ 	id = 0x110;
+ 	fields := struct {
+@@ -2591,6 +2608,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_alloc_prepend_enter;
+ 	id = 0x111;
+ 	fields := struct {
+@@ -2599,6 +2617,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_alloc_prepend_exit;
+ 	id = 0x112;
+ 	fields := struct {
+@@ -2608,6 +2627,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_insert_enter;
+ 	id = 0x113;
+ 	fields := struct {
+@@ -2616,6 +2636,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_insert_exit;
+ 	id = 0x114;
+ 	fields := struct {
+@@ -2624,6 +2645,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_append_list_enter;
+ 	id = 0x115;
+ 	fields := struct {
+@@ -2632,6 +2654,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_append_list_exit;
+ 	id = 0x116;
+ 	fields := struct {
+@@ -2641,6 +2664,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_merge_slist_enter;
+ 	id = 0x117;
+ 	fields := struct {
+@@ -2649,6 +2673,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_merge_slist_exit;
+ 	id = 0x118;
+ 	fields := struct {
+@@ -2658,6 +2683,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_get_enter;
+ 	id = 0x119;
+ 	fields := struct {
+@@ -2667,6 +2693,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_get_blocking;
+ 	id = 0x11A;
+ 	fields := struct {
+@@ -2676,6 +2703,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_get_exit;
+ 	id = 0x11B;
+ 	fields := struct {
+@@ -2686,6 +2714,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_remove_enter;
+ 	id = 0x11C;
+ 	fields := struct {
+@@ -2694,6 +2723,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_remove_exit;
+ 	id = 0x11D;
+ 	fields := struct {
+@@ -2703,6 +2733,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_unique_append_enter;
+ 	id = 0x11E;
+ 	fields := struct {
+@@ -2711,6 +2742,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_unique_append_exit;
+ 	id = 0x11F;
+ 	fields := struct {
+@@ -2720,6 +2752,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_peek_head;
+ 	id = 0x120;
+ 	fields := struct {
+@@ -2729,6 +2762,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = queue_peek_tail;
+ 	id = 0x121;
+ 	fields := struct {
+@@ -2738,6 +2772,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_init_enter;
+ 	id = 0x122;
+ 	fields := struct {
+@@ -2746,6 +2781,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_init_exit;
+ 	id = 0x123;
+ 	fields := struct {
+@@ -2754,6 +2790,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_cancel_wait_enter;
+ 	id = 0x124;
+ 	fields := struct {
+@@ -2762,6 +2799,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_cancel_wait_exit;
+ 	id = 0x125;
+ 	fields := struct {
+@@ -2770,6 +2808,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_put_enter;
+ 	id = 0x126;
+ 	fields := struct {
+@@ -2779,6 +2818,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_put_exit;
+ 	id = 0x127;
+ 	fields := struct {
+@@ -2788,6 +2828,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_alloc_put_enter;
+ 	id = 0x128;
+ 	fields := struct {
+@@ -2797,6 +2838,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_alloc_put_exit;
+ 	id = 0x129;
+ 	fields := struct {
+@@ -2807,6 +2849,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_put_list_enter;
+ 	id = 0x12A;
+ 	fields := struct {
+@@ -2817,6 +2860,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_put_list_exit;
+ 	id = 0x12B;
+ 	fields := struct {
+@@ -2827,6 +2871,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_put_slist_enter;
+ 	id = 0x12C;
+ 	fields := struct {
+@@ -2836,6 +2881,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_put_slist_exit;
+ 	id = 0x12D;
+ 	fields := struct {
+@@ -2845,6 +2891,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_get_enter;
+ 	id = 0x12E;
+ 	fields := struct {
+@@ -2854,6 +2901,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_get_exit;
+ 	id = 0x12F;
+ 	fields := struct {
+@@ -2864,6 +2912,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_peek_head_enter;
+ 	id = 0x130;
+ 	fields := struct {
+@@ -2872,6 +2921,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_peek_head_exit;
+ 	id = 0x131;
+ 	fields := struct {
+@@ -2881,6 +2931,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_peek_tail_enter;
+ 	id = 0x132;
+ 	fields := struct {
+@@ -2889,6 +2940,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = fifo_peek_tail_exit;
+ 	id = 0x133;
+ 	fields := struct {
+@@ -2898,6 +2950,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_init_enter;
+ 	id = 0x134;
+ 	fields := struct {
+@@ -2906,6 +2959,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_init_exit;
+ 	id = 0x135;
+ 	fields := struct {
+@@ -2914,6 +2968,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_put_enter;
+ 	id = 0x136;
+ 	fields := struct {
+@@ -2923,6 +2978,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_put_exit;
+ 	id = 0x137;
+ 	fields := struct {
+@@ -2932,6 +2988,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_alloc_put_enter;
+ 	id = 0x138;
+ 	fields := struct {
+@@ -2941,6 +2998,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_alloc_put_exit;
+ 	id = 0x139;
+ 	fields := struct {
+@@ -2951,6 +3009,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_get_enter;
+ 	id = 0x13A;
+ 	fields := struct {
+@@ -2960,6 +3019,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = lifo_get_exit;
+ 	id = 0x13B;
+ 	fields := struct {
+@@ -2970,6 +3030,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_init;
+ 	id = 0x13C;
+ 	fields := struct {
+@@ -2978,6 +3039,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_alloc_init_enter;
+ 	id = 0x13D;
+ 	fields := struct {
+@@ -2986,6 +3048,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_alloc_init_exit;
+ 	id = 0x13E;
+ 	fields := struct {
+@@ -2995,6 +3058,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_cleanup_enter;
+ 	id = 0x13F;
+ 	fields := struct {
+@@ -3003,6 +3067,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_cleanup_exit;
+ 	id = 0x140;
+ 	fields := struct {
+@@ -3012,6 +3077,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_push_enter;
+ 	id = 0x141;
+ 	fields := struct {
+@@ -3020,6 +3086,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_push_exit;
+ 	id = 0x142;
+ 	fields := struct {
+@@ -3029,6 +3096,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_pop_enter;
+ 	id = 0x143;
+ 	fields := struct {
+@@ -3038,6 +3106,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_pop_blocking;
+ 	id = 0x144;
+ 	fields := struct {
+@@ -3047,6 +3116,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = stack_pop_exit;
+ 	id = 0x145;
+ 	fields := struct {
+@@ -3057,6 +3127,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_init;
+ 	id = 0x146;
+ 	fields := struct {
+@@ -3065,6 +3136,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_aligned_alloc_enter;
+ 	id = 0x147;
+ 	fields := struct {
+@@ -3074,6 +3146,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_alloc_helper_blocking;
+ 	id = 0x148;
+ 	fields := struct {
+@@ -3083,6 +3156,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_aligned_alloc_exit;
+ 	id = 0x149;
+ 	fields := struct {
+@@ -3093,6 +3167,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_alloc_enter;
+ 	id = 0x14A;
+ 	fields := struct {
+@@ -3102,6 +3177,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_alloc_exit;
+ 	id = 0x14B;
+ 	fields := struct {
+@@ -3112,6 +3188,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_calloc_enter;
+ 	id = 0x14C;
+ 	fields := struct {
+@@ -3121,6 +3198,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_calloc_exit;
+ 	id = 0x14D;
+ 	fields := struct {
+@@ -3131,6 +3209,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_free;
+ 	id = 0x14E;
+ 	fields := struct {
+@@ -3139,6 +3218,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_realloc_enter;
+ 	id = 0x14F;
+ 	fields := struct {
+@@ -3150,6 +3230,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_realloc_exit;
+ 	id = 0x150;
+ 	fields := struct {
+@@ -3162,6 +3243,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_aligned_alloc_enter;
+ 	id = 0x151;
+ 	fields := struct {
+@@ -3170,6 +3252,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_aligned_alloc_exit;
+ 	id = 0x152;
+ 	fields := struct {
+@@ -3179,6 +3262,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_malloc_enter;
+ 	id = 0x153;
+ 	fields := struct {
+@@ -3187,6 +3271,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_malloc_exit;
+ 	id = 0x154;
+ 	fields := struct {
+@@ -3196,6 +3281,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_calloc_enter;
+ 	id = 0x155;
+ 	fields := struct {
+@@ -3204,6 +3290,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_calloc_exit;
+ 	id = 0x156;
+ 	fields := struct {
+@@ -3213,6 +3300,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_free_enter;
+ 	id = 0x157;
+ 	fields := struct {
+@@ -3222,6 +3310,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_free_exit;
+ 	id = 0x158;
+ 	fields := struct {
+@@ -3231,6 +3320,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_realloc_enter;
+ 	id = 0x159;
+ 	fields := struct {
+@@ -3240,6 +3330,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = heap_sys_k_realloc_exit;
+ 	id = 0x15A;
+ 	fields := struct {
+@@ -3250,6 +3341,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_init;
+ 	id = 0x15B;
+ 	fields := struct {
+@@ -3260,6 +3352,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_reset_enter;
+ 	id = 0x15C;
+ 	fields := struct {
+@@ -3268,6 +3361,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_reset_exit;
+ 	id = 0x15D;
+ 	fields := struct {
+@@ -3276,6 +3370,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_close_enter;
+ 	id = 0x15E;
+ 	fields := struct {
+@@ -3284,6 +3379,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_close_exit;
+ 	id = 0x15F;
+ 	fields := struct {
+@@ -3292,6 +3388,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_write_enter;
+ 	id = 0x160;
+ 	fields := struct {
+@@ -3303,6 +3400,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_write_blocking;
+ 	id = 0x161;
+ 	fields := struct {
+@@ -3312,6 +3410,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_write_exit;
+ 	id = 0x162;
+ 	fields := struct {
+@@ -3321,6 +3420,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_read_enter;
+ 	id = 0x163;
+ 	fields := struct {
+@@ -3332,6 +3432,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_read_blocking;
+ 	id = 0x164;
+ 	fields := struct {
+@@ -3341,6 +3442,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pipe_read_exit;
+ 	id = 0x165;
+ 	fields := struct {
+@@ -3350,6 +3452,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_submit_enter;
+ 	id = 0x166;
+ 	fields := struct {
+@@ -3359,6 +3462,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_submit_exit;
+ 	id = 0x167;
+ 	fields := struct {
+@@ -3367,6 +3471,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_sqe_acquire_enter;
+ 	id = 0x168;
+ 	fields := struct {
+@@ -3375,6 +3480,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_sqe_acquire_exit;
+ 	id = 0x169;
+ 	fields := struct {
+@@ -3384,6 +3490,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_sqe_cancel;
+ 	id = 0x16A;
+ 	fields := struct {
+@@ -3392,6 +3499,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_submit_enter;
+ 	id = 0x16B;
+ 	fields := struct {
+@@ -3402,6 +3510,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_submit_exit;
+ 	id = 0x16C;
+ 	fields := struct {
+@@ -3410,6 +3519,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_acquire_enter;
+ 	id = 0x16D;
+ 	fields := struct {
+@@ -3418,6 +3528,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_acquire_exit;
+ 	id = 0x16E;
+ 	fields := struct {
+@@ -3427,6 +3538,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_release;
+ 	id = 0x16F;
+ 	fields := struct {
+@@ -3436,6 +3548,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_consume_enter;
+ 	id = 0x170;
+ 	fields := struct {
+@@ -3444,6 +3557,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_cqe_consume_exit;
+ 	id = 0x171;
+ 	fields := struct {
+@@ -3453,6 +3567,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_txn_next_enter;
+ 	id = 0x172;
+ 	fields := struct {
+@@ -3462,6 +3577,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_txn_next_exit;
+ 	id = 0x173;
+ 	fields := struct {
+@@ -3471,6 +3587,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_chain_next_enter;
+ 	id = 0x174;
+ 	fields := struct {
+@@ -3480,6 +3597,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = rtio_chain_next_exit;
+ 	id = 0x175;
+ 	fields := struct {
+@@ -3489,6 +3607,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_get_enter;
+ 	id = 0x176;
+ 	fields := struct {
+@@ -3497,6 +3616,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_get_exit;
+ 	id = 0x177;
+ 	fields := struct {
+@@ -3506,6 +3626,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_put_enter;
+ 	id = 0x178;
+ 	fields := struct {
+@@ -3514,6 +3635,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_put_exit;
+ 	id = 0x179;
+ 	fields := struct {
+@@ -3523,6 +3645,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_put_async_enter;
+ 	id = 0x17A;
+ 	fields := struct {
+@@ -3532,6 +3655,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_put_async_exit;
+ 	id = 0x17B;
+ 	fields := struct {
+@@ -3542,6 +3666,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_enable_enter;
+ 	id = 0x17C;
+ 	fields := struct {
+@@ -3550,6 +3675,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_enable_exit;
+ 	id = 0x17D;
+ 	fields := struct {
+@@ -3559,6 +3685,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_disable_enter;
+ 	id = 0x17E;
+ 	fields := struct {
+@@ -3567,6 +3694,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_device_runtime_disable_exit;
+ 	id = 0x17F;
+ 	fields := struct {
+@@ -3576,6 +3704,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_system_suspend_enter;
+ 	id = 0x180;
+ 	fields := struct {
+@@ -3584,6 +3713,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = pm_system_suspend_exit;
+ 	id = 0x181;
+ 	fields := struct {
+@@ -3593,6 +3723,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = syscall_enter;
+ 	id = 0x182;
+ 	fields := struct {
+@@ -3602,6 +3733,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = syscall_exit;
+ 	id = 0x183;
+ 	fields := struct {
+@@ -3610,6 +3742,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = thread_sleep_ticks_enter;
+ 	id = 0x184;
+ 	fields := struct {
+@@ -3618,6 +3751,7 @@ event {
+ };
+ 
+ event {
++	stream_id = 0;
+ 	name = thread_sleep_ticks_exit;
+ 	id = 0x185;
+ 	fields := struct {
