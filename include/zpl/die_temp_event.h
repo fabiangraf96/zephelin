@@ -22,7 +22,7 @@ extern "C" {
 
 #if defined(CONFIG_ZPL_TRACE_FORMAT_CTF)
 /* Die temp event ID */
-#define ZPL_DIE_TEMP_EVENT 0x108
+#define ZPL_DIE_TEMP_EVENT 0x1008
 
 /**
  * Die temperature event structure.

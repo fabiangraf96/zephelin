@@ -81,7 +81,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_inference_enter;
-	id = 0x104;
+	id = 0x1004;
 	fields := struct {
 		uint8_t cpu_id;
 		uint32_t thread_id;
@@ -92,7 +92,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_inference_exit;
-	id = 0x105;
+	id = 0x1005;
 	fields := struct {
 		uint8_t cpu_id;
 		uint32_t thread_id;
@@ -103,7 +103,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_memory;
-	id = 0x106;
+	id = 0x1006;
 	fields := struct {
 		enum zpl_memory_region memory_region;
 		uint32_t memory_addr;
@@ -116,7 +116,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_cpu_load_event;
-	id = 0x107;
+	id = 0x1007;
 	fields := struct {
 		uint8_t cpu_id;
 		uint16_t cpu_load;
@@ -126,7 +126,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_die_temp_event;
-	id = 0x108;
+	id = 0x1008;
 	fields := struct {
 		uint16_t sensor_count;
 		float32 die_temp[sensor_count];
@@ -136,7 +136,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_scope_enter;
-	id = 0x109;
+	id = 0x1009;
 	fields := struct {
 		uint8_t cpu_id;
 		uint32_t thread_id;
@@ -149,7 +149,7 @@ event {
 event {
 	stream_id = 0;
 	name = zpl_scope_exit;
-	id = 0x10A;
+	id = 0x100A;
 	fields := struct {
 		uint8_t cpu_id;
 		uint32_t thread_id;

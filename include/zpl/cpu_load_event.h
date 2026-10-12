@@ -22,7 +22,7 @@ extern "C" {
 
 #if defined(CONFIG_ZPL_TRACE_FORMAT_CTF)
 /* CPU load event ID */
-#define ZPL_CPU_LOAD_EVENT 0x107
+#define ZPL_CPU_LOAD_EVENT 0x1007
 
 /**
  * CPU load event structure.

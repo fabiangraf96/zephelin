@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-#define ZPL_MEMORY_EVENT 0x106
+#define ZPL_MEMORY_EVENT 0x1006
 
 enum zpl_memory_region {
 	ZPL_STACK,

@@ -22,8 +22,8 @@ extern "C" {
 
 #if defined(CONFIG_ZPL_TRACE_FORMAT_CTF)
 /* Inference events IDs */
-#define ZPL_INFERENCE_ENTER_EVENT 0x104
-#define ZPL_INFERENCE_EXIT_EVENT 0x105
+#define ZPL_INFERENCE_ENTER_EVENT 0x1004
+#define ZPL_INFERENCE_EXIT_EVENT 0x1005
 
 /**
  * Inference event structure.

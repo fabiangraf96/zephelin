@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-#define ZPL_SCOPE_ENTER_EVENT 0x109
-#define ZPL_SCOPE_EXIT_EVENT 0x10A
+#define ZPL_SCOPE_ENTER_EVENT 0x1009
+#define ZPL_SCOPE_EXIT_EVENT 0x100A
 #define ZPL_MAX_SCOPE_NAME_LENGTH 30
 
 typedef struct __packed {
